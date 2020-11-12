@@ -60,6 +60,12 @@ class pid_controller:
       except CvBridgeError as e:
         print(e)
 
+      # Check for red line
+      redLine = cv_image[680, 640]
+      if redLine[0] < 100 and redLine[1] < 100 and redLine[2] > 200:
+        print("Red Line Detected!")
+        self.state = 3
+
       # out = cv2.VideoWriter('outpy.mp4',cv2.VideoWriter_fourcc('M','J','P','G'), 10, (frame_width,frame_height))
       gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
       ret, thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
@@ -85,7 +91,7 @@ class pid_controller:
 
       # stay 480 px away from the middle of the outer line
       middle -= 480
-      cv2.circle(thresh, (middle,650), 15, 200, -1) # y,x coordinate
+      cv2.circle(cv_image, (middle,650), 15, (0,0,255), -1) # y,x coordinate
 
       proportional = abs(middle-640)
       derivative = abs(proportional-self.last_proportional)
@@ -103,13 +109,54 @@ class pid_controller:
       self.last_middle = middle
       self.last_proportional = proportional
 
-      cv2.imshow("threshold image", thresh)
+      cv2.imshow("pid image", cv_image)
       cv2.waitKey(3)
       self.counter += 1
       try:
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "bgr8"))
       except CvBridgeError as e:
         print(e)
+
+    if self.state == 3:
+
+      # stop
+
+      move = Twist()
+      move.angular.z = 0
+      move.linear.x = 0
+      self.move_pub.publish(move)
+
+      try:
+        cv_image = self.bridge.imgmsg_to_cv2(data, "mono8")
+      except CvBridgeError as e:
+        print(e)
+
+      ret, thresh = cv2.threshold(cv_image, 150, 255, cv2.THRESH_BINARY)
+
+      ped = thresh[430, 650]
+      if ped == 0:
+        print("pedestrian Detected!!")
+        self.state = 4
+
+
+      cv2.imshow("pedestrian image", thresh)
+      cv2.waitKey(3)
+
+    if self.state == 4:
+      try:
+        cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+      except CvBridgeError as e:
+        print(e)
+
+      move = Twist()
+      move.angular.z = 0
+      move.linear.x = 0.12
+      self.move_pub.publish(move)
+
+      # Check for red line, go back to pid control when is detected.
+      redLine = cv_image[680, 640]
+      if redLine[0] < 100 and redLine[1] < 100 and redLine[2] > 200:
+        self.state = 2
 
 
 def main(args):
