@@ -1,11 +1,15 @@
 # robot_controllers
-
-cv_pid.py is a state machine.
-
 <h1>States</h1>
 
-0: rospy.get_time() seems unreliable during the first few seconds until the world loads. Wait for 10s (not actually 10 in simulation)<br>
-1: position the robot parallel to the outer line by turning for 3s.<br>
-2: PID control<br>
-3: Red line has been detected. Stop and detect for pedestrian.<br>
-4: Pedestrian has crossed and the robot is moving straight. When the red line is detected go back to pid control state<br>
+
+state 0: wait 10s for everything to load
+state 1: turn for 3s to move next to the outer line
+state 2: PID control off the outerline of outer ring
+state 3: Red line detected. Wait for pedestrian
+state 4: Move robot straight until red line detected again: state -> 2
+state 5: Left PID for cornering the outer line of the inner ring,
+         used for initial cornering as well as after vehicle has passed
+state 6: Stop and wait until the vehicle has been detected
+state 7: wait for 3 seconds after the vehicle is detected, then state 6 -> 5
+state 8: Left PID for inner line of inner ring. Look for parked cars
+state 9: Parked car has been detected, move straight for 3.5s, then state 9 -> 8
