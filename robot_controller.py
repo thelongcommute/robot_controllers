@@ -11,8 +11,13 @@ from rosgraph_msgs.msg import Clock
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 from geometry_msgs.msg import Twist
+
 from perspective_transform_script import process_image_and_flatten
 from segment_license_plate_images import segment_image
+
+import tensorflow as tf
+from tensorflow import keras
+from plate_detector_cnn_training import int_to_char
 
 class pid_controller:
 
@@ -42,6 +47,8 @@ class pid_controller:
 	self.det_time = 0
 	self.det_count = 0
 	self.isInner = False
+	# Load plate detector model
+	self.model = keras.models.load_model("plate_detector_model")
 
 	# <State List> 
 	# state 0: wait 10s for everything to load
@@ -108,10 +115,10 @@ class pid_controller:
 
 	  # NEEDS TO BE UPDATED: ONLY FOR DEBUGGING
 	  # activate left pid after 14 seconds
-	  if rospy.get_time() - self.init_time >= 14:
-		print("left pid activate")
-		self.time = rospy.get_time()
-		self.state = 5
+	 #  if rospy.get_time() - self.init_time >= 14:
+		# print("left pid activate")
+		# self.time = rospy.get_time()
+		# self.state = 5
 
 	  view_image = cv_image
 
@@ -124,24 +131,57 @@ class pid_controller:
 		# print("Parked Car detected")
 		# cv2.circle(view_image, (1000,100), 15, (255,0,0), -1)
 		# display bottom left sub 1/4 frame
+
+		# read plate if it has been more than 0.5 second from last attempt
 		if rospy.get_time() - self.det_time > 0.5:
-			perp_transformed = process_image_and_flatten(cv_image)
+			# get perspective transformed image
+			perp_transformed = process_image_and_flatten(cv_image, car_side = 0)
 			cv2.imshow("parked car image", perp_transformed)
-			char_imgs = segment_image(perp_transformed)
-			# cv2.imwrite("{}.png".format(self.det_count), cv_image)
 			cv2.waitKey(3)
+			self.det_count += 1
+
+			# get numpy array of segmented characters of the plate
+			char_imgs = np.array(segment_image(perp_transformed))
+			print(char_imgs.shape)
+
+			# process data for predict
+			char_imgs = char_imgs/255.
+			char_imgs = np.expand_dims(char_imgs,axis=3)
+			# predict data
+			char_predict = self.model.predict(char_imgs)
+			print(char_imgs.shape)
+
+			# read first two alphabets of the license plate
+			for i in range(2,4):
+				print(int_to_char(np.argmax(y_predict[i][0:26])))
 
 		self.det_time = rospy.get_time()
 
 	  elif 195 <= avg_color_left[0] <= 225 and 95 <= avg_color_left[1] <= 125 and 95 <= avg_color_left[2] <= 125:
 		# print("Parked Car detected")
 		# cv2.circle(view_image, (1000,100), 15, (255,0,0), -1)
+
+		# read plate if it has been more than 0.5 second from last attempt
 		if rospy.get_time() - self.det_time > 0.5:
-			perp_transformed = process_image_and_flatten(cv_image)
+			perp_transformed = process_image_and_flatten(cv_image, car_side = 0)
 			cv2.imshow("parked car image", perp_transformed)
-			char_imgs = segment_image(perp_transformed)
-			# cv2.imwrite("{}.png".format(self.det_count), cv_image)
 			cv2.waitKey(3)
+			self.det_count += 1
+
+			# get numpy array of segmented characters of the plate
+			char_imgs = np.array(segment_image(perp_transformed))
+			print(char_imgs.shape)
+
+			# process data for predict
+			char_imgs = char_imgs/255.
+			char_imgs = np.expand_dims(char_imgs,axis=3)
+			# predict data
+			char_predict = self.model.predict(char_imgs)
+			print(char_imgs.shape)
+
+			# read first two alphabets of the license plate
+			for i in range(2,4):
+				print(int_to_char(np.argmax(y_predict[i][0:26])))
 
 		self.det_time = rospy.get_time()
 
@@ -208,8 +248,8 @@ class pid_controller:
 	  self.move_pub.publish(move)
 	  self.last_proportional = proportional
 
-	  cv2.imshow("view image", view_image)
-	  cv2.waitKey(3)
+	  # cv2.imshow("view image", view_image)
+	  # cv2.waitKey(3)
 	  try:
 		self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "bgr8"))
 	  except CvBridgeError as e:
