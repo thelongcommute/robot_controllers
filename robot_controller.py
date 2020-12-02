@@ -238,7 +238,7 @@ class pid_controller:
 			print("published_license_plates at location {}: ".format(plate_loc), self.published_license_plates[plate_loc-1])
 
 			# plate location 1,3,4,6 are valid to start driving to Inner Loop
-			if plate_loc == 1 and len(self.published_license_plates[0]) >= 5:
+			if plate_loc == 1 and len(self.published_license_plates[0]) >= 12:
 				print("driving straight for 3.5s")
 				self.time = rospy.get_time()
 				self.state = 11
@@ -286,7 +286,7 @@ class pid_controller:
 			print("published_license_plates at location {}: ".format(plate_loc), self.published_license_plates[plate_loc-1])
 
 			# plate location 1,3,4,6 are valid to start driving to Inner Loop
-			if plate_loc == 1 and len(self.published_license_plates[0]) >= 5:
+			if plate_loc == 1 and len(self.published_license_plates[0]) >= 12:
 				print("driving straight for 3.5s")
 				self.time = rospy.get_time()
 				self.state = 11
@@ -343,7 +343,7 @@ class pid_controller:
 	  move.linear.x = 0.2
 
 	  if self.isDetected:
-		move.linear.x = 0.15
+		move.linear.x = 0.09
 
 	  if middle < 640:
 		move.angular.z = 0.15 + float(0.2 * power_difference)
@@ -427,7 +427,7 @@ class pid_controller:
 				print("start PID control on the inner most line")
 				self.state = 8
 		else:
-			if rospy.get_time() - self.time >= 7:
+			if rospy.get_time() - self.time >= 6.6:
 				print("stop and wait for vehicle")
 				self.state = 6
 
@@ -471,9 +471,9 @@ class pid_controller:
 		if middle < 570:
 			middle -= 200
 
-		cv2.circle(view_image, (middle,650), 15, (0,0,255), -1) # y,x coordinate
-		cv2.imshow("view image", view_image)
-		cv2.waitKey(3)
+		# cv2.circle(view_image, (middle,650), 15, (0,0,255), -1) # y,x coordinate
+		# cv2.imshow("view image", view_image)
+		# cv2.waitKey(3)
 
 		proportional = abs(middle-640)
 		derivative = abs(proportional-self.last_proportional)
@@ -592,7 +592,7 @@ class pid_controller:
 				print("published_license_plates at location {}: ".format(plate_loc), self.published_license_plates[plate_loc-1])
 
 				# send termination message after we publish all license plates!!!
-				if len(self.published_license_plates[6]) >= 4 and len(self.published_license_plates[7]) >= 4:
+				if len(self.published_license_plates[6]) >= 5 and len(self.published_license_plates[7]) >= 5:
 					self.license_plate_pub.publish(str("Team20,password,-1,XXXX"))
 					self.state = 10
 					print("-----Run Complete-----")
@@ -642,7 +642,7 @@ class pid_controller:
 				print("published_license_plates at location {}: ".format(plate_loc), self.published_license_plates[plate_loc-1])
 
 				# send termination message after we publish all license plates!!!
-				if len(self.published_license_plates[6]) >= 3 and len(self.published_license_plates[7]) >= 3:
+				if len(self.published_license_plates[6]) >= 5 and len(self.published_license_plates[7]) >= 5:
 					self.license_plate_pub.publish(str("Team20,password,-1,XXXX"))
 					self.state = 10
 					print("-----Run Complete-----")
@@ -684,7 +684,7 @@ class pid_controller:
 		power_difference = proportional/80 + derivative/90;
 		# print(str(proportional) + "   " + str(self.last_proportional) + "   " + str(power_difference))
 		move = Twist()
-		move.linear.x = 0.116
+		move.linear.x = 0.12
 
 		if middle < 640:
 			move.angular.z = 0.15 + float(0.2 * power_difference)
@@ -700,7 +700,7 @@ class pid_controller:
 		# this if statement replace state 9
 		if self.isDetected:
 			move.angular.z = 0
-			move.linear.x = 0.12
+			move.linear.x = 0.06
 
 			if rospy.get_time() - self.time > 3.5:
 				self.isDetected = False
@@ -708,8 +708,8 @@ class pid_controller:
 		self.move_pub.publish(move)
 		self.last_proportional = proportional
 
-		cv2.imshow("view image", view_image)
-		cv2.waitKey(3)
+		# cv2.imshow("view image", view_image)
+		# cv2.waitKey(3)
 
 	# # State 9: drive straight until we pass the parked vehicle
 	# if self.state == 9:
