@@ -103,7 +103,7 @@ def process_image_and_flatten(cv_img, car_side):
         inner_vert_edges = vert_edges[-2:]
     # Split image into two, so that we can get the bottom
     # of each blue rectangle
-    t = 5
+    t = 20
     left_side = img_bin[:,inner_vert_edges[0]-t:inner_vert_edges[0]]
     right_side = img_bin[:,inner_vert_edges[1]:inner_vert_edges[1]+t]
 
